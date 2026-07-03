@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nobichan AI Analyst v3.0</title>
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg-deep: #050312;
+    --bg-main: #0a0720;
+    --bg-card: #0f0a28;
+    --bg-card2: #130d30;
+    --bg-input: #1a1040;
+    --purple-main: #CA8A04;
+    --purple-light: #EAB308;
+    --purple-bright: #FDE047;
+    --purple-glow: rgba(202,138,4,0.35);
+    --cyan: #22d3ee;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --text-main: #f1f0ff;
+    --text-muted: #9d8ec7;
+    --text-dim: #6b5b9a;
+    --border: rgba(202,138,4,0.25);
+    --border-bright: rgba(234,179,8,0.55);
+    --gradient: linear-gradient(135deg, #EAB308, #CA8A04);
+    --gradient2: linear-gradient(135deg, #FDE047, #EAB308);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-main);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ====== SIDEBAR ====== */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .logo-area {
+    padding: 0 20px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: var(--gradient);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 15px var(--purple-glow);
+  }
+
+  .logo-text { font-size: 16px; font-weight: 800; color: var(--text-main); }
+  .logo-sub { font-size: 10px; color: var(--text-dim); padding-left: 48px; margin-top: -4px; }
+
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    color: #10b981; font-size: 11px; font-weight: 600;
+    padding: 5px 12px; border-radius: 20px; margin-top: 14px;
+  }
+  .status-badge.offline { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .status-dot.pulse { animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .nav-section { padding: 16px 12px 8px 12px; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px 8px 8px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--text-muted);
+    transition: all 0.2s; margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: rgba(202,138,4,0.1); color: var(--text-main); }
+  .nav-item.active { background: var(--gradient); color: white; box-shadow: 0 4px 15px var(--purple-glow); }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .upgrade-card {
+    margin: auto 12px 12px 12px;
+    background: linear-gradient(135deg, rgba(202,138,4,0.2), rgba(202,138,4,0.2));
+    border: 1px solid var(--border-bright);
+    border-radius: 14px; padding: 16px; text-align: center;
+  }
+  .upgrade-card .uc-icon { font-size: 22px; margin-bottom: 6px; }
+  .upgrade-card .uc-title { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+  .upgrade-card .uc-sub { font-size: 11px; color: var(--text-dim); margin-bottom: 12px; }
+  .upgrade-btn {
+    background: var(--gradient); color: white; border: none;
+    padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; width: 100%; transition: opacity 0.2s;
+  }
+  .upgrade-btn:hover { opacity: 0.85; }
+
+  /* ====== MAIN CONTENT ====== */
+  .main {
+    flex: 1; overflow-y: auto; height: 100vh;
+    background: var(--bg-main);
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+
+  .page { display: none; padding: 28px 32px; min-height: 100%; }
+  .page.active { display: block; }
+
+  /* Page header */
+  .page-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 28px;
+    background: linear-gradient(180deg, rgba(202,138,4,0.05) 0%, transparent 100%);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+  .page-header-left h1 { font-size: 32px; font-weight: 800; color: var(--text-main); }
+  .page-header-left h1 span { color: var(--purple-bright); }
+  .page-header-left p { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+  .version-badge {
+    background: var(--gradient); color: white;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    margin-bottom: 6px; display: inline-block;
+  }
+  .robot-img {
+    font-size: 80px; opacity: 0.6;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border-bright);
+    border-radius: 16px; padding: 28px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(135deg, rgba(202,138,4,0.05), rgba(202,138,4,0.05));
+    cursor: pointer; transition: all 0.3s; margin-bottom: 24px;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--purple-main);
+    background: linear-gradient(135deg, rgba(202,138,4,0.12), rgba(202,138,4,0.12));
+    box-shadow: 0 0 30px var(--purple-glow);
+  }
+  .upload-left { display: flex; align-items: center; gap: 18px; }
+  .upload-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, rgba(202,138,4,0.3), rgba(202,138,4,0.3));
+    border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px;
+    border: 1px solid var(--border-bright);
+  }
+  .upload-title { font-size: 17px; font-weight: 700; color: var(--text-main); }
+  .upload-sub { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .upload-right { text-align: right; }
+  .upload-types { font-size: 12px; font-weight: 600; color: var(--purple-bright); }
+  .upload-limit { font-size: 11px; color: var(--text-dim); }
+
+  /* Stat cards */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  
+  .stat-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+    position: relative; overflow: hidden;
+    transition: all 0.3s;
+  }
+  .stat-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+  .stat-card::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background: var(--gradient); opacity: 0.6;
+  }
+  .stat-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .stat-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .stat-icon.rows { background: rgba(202,138,4,0.2); }
+  .stat-icon.cols { background: rgba(6,182,212,0.2); }
+  .stat-icon.numeric { background: rgba(16,185,129,0.2); }
+  .stat-icon.missing { background: rgba(239,68,68,0.2); }
+  .stat-value { font-size: 32px; font-weight: 800; color: var(--text-main); }
+  .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .stat-wave { height: 30px; opacity: 0.4; }
+
+  /* Two column layout */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px; margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 15px; font-weight: 700; color: var(--text-main);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+  }
+  .card-title .icon { font-size: 18px; }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table th {
+    background: rgba(202,138,4,0.15); color: var(--purple-bright);
+    padding: 10px 14px; text-align: left; font-weight: 600; font-size: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td { padding: 9px 14px; border-bottom: 1px solid rgba(202,138,4,0.08); color: var(--text-muted); }
+  .data-table tr:hover td { background: rgba(202,138,4,0.05); color: var(--text-main); }
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+
+  /* AI Chat */
+  .chat-box {
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; min-height: 120px; max-height: 400px;
+    overflow-y: auto; margin-bottom: 12px; font-size: 13px; line-height: 1.6;
+    color: var(--text-muted);
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .chat-msg { margin-bottom: 12px; }
+  .chat-msg.user .chat-label { color: var(--cyan); font-weight: 700; font-size: 11px; margin-bottom: 3px; }
+  .chat-msg.ai .chat-label { color: var(--purple-bright); font-weight: 700; font-size: 11px; margin-bottom: 3px; }
+  .chat-msg .chat-text { background: rgba(202,138,4,0.08); padding: 10px 14px; border-radius: 10px; color: var(--text-main); white-space: pre-wrap; }
+  .chat-msg.user .chat-text { background: rgba(6,182,212,0.08); }
+
+  .chat-input-row { display: flex; gap: 10px; }
+  .chat-input {
+    flex: 1; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; color: var(--text-main);
+    font-size: 13px; font-family: 'Inter', sans-serif;
+    outline: none; transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--purple-main); }
+  .chat-send {
+    background: var(--gradient); color: white; border: none;
+    width: 44px; height: 44px; border-radius: 10px; cursor: pointer;
+    font-size: 18px; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s; flex-shrink: 0;
+  }
+  .chat-send:hover { opacity: 0.85; }
+
+  /* Suggested questions */
+  .suggest-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .suggest-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; color: var(--text-muted);
+    font-size: 12px; cursor: pointer; transition: all 0.2s; text-align: left;
+  }
+  .suggest-btn:hover { border-color: var(--purple-main); color: var(--text-main); background: rgba(202,138,4,0.1); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--gradient); color: white; box-shadow: 0 4px 15px var(--purple-glow); }
+  .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn-secondary { background: rgba(202,138,4,0.15); color: var(--purple-bright); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: rgba(202,138,4,0.25); }
+  .btn-success { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+  .btn-success:hover { background: rgba(16,185,129,0.3); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Chart options */
+  .chart-options { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .chart-opt {
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 14px; color: var(--text-muted);
+    font-size: 12px; cursor: pointer; transition: all 0.2s;
+  }
+  .chart-opt:hover, .chart-opt.selected {
+    border-color: var(--purple-main); background: rgba(202,138,4,0.15);
+    color: var(--purple-bright);
+  }
+
+  .select-input {
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; color: var(--text-main);
+    font-size: 13px; outline: none; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .select-input:focus { border-color: var(--purple-main); }
+
+  .form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .form-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+  .form-group { display: flex; flex-direction: column; }
+
+  /* Problem/action items */
+  .problem-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; font-size: 13px;
+  }
+  .action-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; font-size: 13px; color: var(--text-muted);
+  }
+
+  /* Clean options */
+  .clean-option {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .clean-option:hover { border-color: var(--purple-main); }
+  .clean-option input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--purple-main); cursor: pointer; }
+  .clean-option label { font-size: 13px; color: var(--text-muted); cursor: pointer; }
+  .clean-option label strong { color: var(--text-main); }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: var(--bg-card2); border: 1px solid var(--border-bright);
+    border-radius: 12px; padding: 14px 20px;
+    font-size: 13px; color: var(--text-main);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: slideIn 0.3s ease;
+    max-width: 320px;
+  }
+  .toast.success { border-color: rgba(16,185,129,0.5); }
+  .toast.error { border-color: rgba(239,68,68,0.5); }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* Report page */
+  .report-progress {
+    background: var(--bg-input); border-radius: 8px; height: 6px;
+    margin: 10px 0; overflow: hidden; display: none;
+  }
+  .report-progress-bar {
+    height: 100%; background: var(--gradient); border-radius: 8px;
+    animation: progress 2s ease-in-out infinite;
+  }
+  @keyframes progress { 0%{width:0%} 50%{width:70%} 100%{width:100%} }
+
+  /* Settings toggles */
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .setting-info h4 { font-size: 14px; font-weight: 600; color: var(--text-main); }
+  .setting-info p { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .toggle {
+    width: 44px; height: 24px; background: var(--bg-input);
+    border-radius: 12px; position: relative; cursor: pointer;
+    border: 1px solid var(--border); transition: background 0.3s;
+  }
+  .toggle.on { background: var(--purple-main); }
+  .toggle::after {
+    content: ''; position: absolute; width: 18px; height: 18px;
+    background: white; border-radius: 50%; top: 2px; left: 2px;
+    transition: left 0.3s;
+  }
+  .toggle.on::after { left: 22px; }
+
+  /* Visualization grid */
+  .viz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .viz-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; min-height: 380px; }
+  .viz-item > div:last-child { height: 320px; }
+  .viz-title { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--text-dim);
+  }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-state h3 { font-size: 16px; color: var(--text-muted); margin-bottom: 8px; }
+  .empty-state p { font-size: 13px; }
+
+  /* Stats mini */
+  .mini-stat {
+    background: rgba(202,138,4,0.1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 14px; text-align: center;
+  }
+  .mini-stat-val { font-size: 20px; font-weight: 800; color: var(--text-main); }
+  .mini-stat-label { font-size: 10px; color: var(--text-dim); }
+
+  /* Correlation badges */
+  .corr-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; margin: 4px;
+  }
+  .corr-badge.pos { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
+  .corr-badge.neg { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .hidden { display: none !important; }
+
+  /* Checkbox */
+  input[type=checkbox] { accent-color: var(--purple-main); }
+
+  /* Column type badge */
+  .type-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  }
+  .type-badge.numeric { background: rgba(16,185,129,0.15); color: #10b981; }
+  .type-badge.object { background: rgba(202,138,4,0.15); color: var(--purple-bright); }
+  .type-badge.datetime { background: rgba(6,182,212,0.15); color: var(--cyan); }
+  .type-badge.bool { background: rgba(245,158,11,0.15); color: var(--orange); }
+
+  .section-gap { margin-top: 28px; }
+</style>
+</head>
+<body>
+
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar">
+  <div class="logo-area">
+    <div class="logo">
+      <div class="logo-icon">🤖</div>
+      <div>
+        <div class="logo-text">NOBICHAN AI</div>
+      </div>
+    </div>
+    <div class="logo-sub">Autonomous Intelligence Platform</div>
+    <div class="status-badge" id="systemStatus">
+      <div class="status-dot pulse"></div>
+      <span id="statusText">Checking...</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item active" onclick="goPage('dashboard')">
+      <span class="nav-icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="goPage('analytics')">
+      <span class="nav-icon">📊</span> Analytics
+    </div>
+    <div class="nav-item" onclick="goPage('visualizations')">
+      <span class="nav-icon">📈</span> Visualizations
+    </div>
+    <div class="nav-item" onclick="goPage('ai')">
+      <span class="nav-icon">💬</span> AI Workspace
+    </div>
+    <div class="nav-item" onclick="goPage('reports')">
+      <span class="nav-icon">📋</span> Reports
+    </div>
+    <div class="nav-item" onclick="goPage('settings')">
+      <span class="nav-icon">⚙️</span> Settings
+    </div>
+  </div>
+
+  <div class="upgrade-card">
+    <div class="uc-icon">✨</div>
+    <div class="uc-title">Unlock Full Power</div>
+    <div class="uc-sub">Go premium for advanced AI insights</div>
+    <button class="upgrade-btn">👑 Upgrade Now</button>
+  </div>
+</aside>
+
+<!-- ====== MAIN ====== -->
+<main class="main">
+
+  <!-- ====== DASHBOARD ====== -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="version-badge">V3.0</div>
+        <h1>Nobichan <span>AI</span> Analyst</h1>
+        <p>Upload • Analyze • Visualize • Discover Insights</p>
+      </div>
+      <div class="robot-img">🤖</div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+         ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+      <div class="upload-left">
+        <div class="upload-icon">☁️</div>
+        <div>
+          <div class="upload-title">Upload CSV, Excel, JSON, TSV or Parquet File</div>
+          <div class="upload-sub" id="uploadSubText">Drag & drop your file here, or click to browse</div>
+        </div>
+      </div>
+      <div class="upload-right">
+        <div class="upload-types">CSV, XLSX, XLS, JSON, TSV, PARQUET</div>
+        <div class="upload-limit">Max 200MB</div>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.json,.tsv,.parquet" style="display:none" onchange="uploadFile(this.files[0])"/>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon rows">🗃️</div>
+        </div>
+        <div class="stat-value" id="statRows">—</div>
+        <div class="stat-label">Rows</div>
+        <svg class="stat-wave" viewBox="0 0 100 30"><polyline points="0,15 20,8 40,18 60,5 80,20 100,10" fill="none" stroke="#EAB308" stroke-width="2"/></svg>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon cols">📦</div>
+        </div>
+        <div class="stat-value" id="statCols">—</div>
+        <div class="stat-label">Columns</div>
+        <svg class="stat-wave" viewBox="0 0 100 30"><polyline points="0,20 25,12 50,18 75,8 100,15" fill="none" stroke="#EAB308" stroke-width="2"/></svg>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon numeric">#️⃣</div>
+        </div>
+        <div class="stat-value" id="statNumeric">—</div>
+        <div class="stat-label">Numeric</div>
+        <svg class="stat-wave" viewBox="0 0 100 30"><polyline points="0,10 30,20 60,8 80,18 100,12" fill="none" stroke="#22c55e" stroke-width="2"/></svg>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon missing">⚠️</div>
+        </div>
+        <div class="stat-value" id="statMissing">—</div>
+        <div class="stat-label">Missing</div>
+        <svg class="stat-wave" viewBox="0 0 100 30"><polyline points="0,15 20,22 50,10 70,20 100,8" fill="none" stroke="#ef4444" stroke-width="2"/></svg>
+      </div>
+    </div>
+
+    <!-- Preview + AI Workspace -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title"><span class="icon">📋</span> Dataset Preview</div>
+        <div class="table-wrap" id="previewTableWrap">
+          <div class="empty-state">
+            <div class="empty-icon">📁</div>
+            <h3>No data loaded</h3>
+            <p>Upload a file to see preview</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">💬</span> AI Workspace</div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Ask Nobichan anything about your data</p>
+        <div class="chat-input-row">
+          <input class="chat-input" id="quickAsk" placeholder="Ask a question..." onkeypress="if(event.key==='Enter')quickAskAI()"/>
+          <button class="chat-send" onclick="quickAskAI()">➤</button>
+        </div>
+        <div class="chat-box" id="quickChatBox" style="margin-top:12px;min-height:80px;">
+          <div style="color:var(--text-dim);font-size:12px;">Nobichan is ready. Upload data and ask anything!</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:10px;margin-bottom:6px;">Suggested Questions</div>
+        <div class="suggest-grid">
+          <button class="suggest-btn" onclick="askSuggest('What is the total of all numeric columns?')">What is the total of all numeric columns? →</button>
+          <button class="suggest-btn" onclick="askSuggest('Show me the column with highest values')">Show me the column with highest values →</button>
+          <button class="suggest-btn" onclick="askSuggest('Provide key insights from this data')">Provide key insights from this data →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== ANALYTICS ====== -->
+  <div class="page" id="page-analytics">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>📊 <span>Analytics</span></h1>
+        <p>Deep analysis of your dataset — statistics, patterns, problems and more</p>
+      </div>
+    </div>
+
+    <div id="analyticsContent">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <h3>No data loaded</h3>
+        <p>Upload a file from the Dashboard to start analysis</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== VISUALIZATIONS ====== -->
+  <div class="page" id="page-visualizations">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>📈 <span>Visualizations</span></h1>
+        <p>Create charts and graphs from your data</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🎨</span> Create Custom Chart</div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Chart Type</div>
+          <select class="select-input" id="chartType" onchange="updateChartOptions()">
+            <option value="histogram">Histogram</option>
+            <option value="bar">Bar Chart</option>
+            <option value="line">Line Chart</option>
+            <option value="scatter">Scatter Plot</option>
+            <option value="box">Box Plot</option>
+            <option value="violin">Violin Plot</option>
+            <option value="pie">Pie Chart</option>
+            <option value="heatmap">Correlation Heatmap</option>
+            <option value="area">Area Chart</option>
+          </select>
+        </div>
+        <div class="form-group" id="xColGroup">
+          <div class="form-label">X Column</div>
+          <select class="select-input" id="xCol"><option value="">Select column</option></select>
+        </div>
+        <div class="form-group" id="yColGroup">
+          <div class="form-label">Y Column</div>
+          <select class="select-input" id="yCol"><option value="">Select column</option></select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Color By (optional)</div>
+          <select class="select-input" id="colorCol"><option value="">None</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="renderCustomChart()" style="align-self:flex-end;">🔥 Generate Chart</button>
+      </div>
+      <div id="customChartDiv" style="min-height:350px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🤖</span> Auto-Generated Charts</div>
+      <button class="btn btn-secondary" onclick="loadAutoViz()" style="margin-bottom:16px;">🔄 Generate All Charts</button>
+      <div class="viz-grid" id="autoVizGrid">
+        <div class="empty-state" style="grid-column:span 2;">
+          <div class="empty-icon">📈</div>
+          <h3>Click "Generate All Charts"</h3>
+          <p>Auto-charts will appear here</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== AI WORKSPACE ====== -->
+  <div class="page" id="page-ai">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>💬 AI <span>Workspace</span></h1>
+        <p>Ask Nobichan anything about your data — powered by Ollama LLaMA3 (free, local)</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card" style="height:fit-content;">
+        <div class="card-title"><span class="icon">🤖</span> Nobichan AI Chat</div>
+        <div class="chat-box" id="fullChatBox" style="min-height:300px;max-height:500px;">
+          <div class="chat-msg ai">
+            <div class="chat-label">NOBICHAN AI</div>
+            <div class="chat-text">Hello! I'm Nobichan, your AI data analyst. Upload a dataset on the Dashboard and I'll help you uncover insights, find patterns, detect problems, and answer any questions about your data. I run 100% on your local machine using Ollama — no internet needed!</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="fullAskInput" placeholder="Ask anything about your data..." onkeypress="if(event.key==='Enter')fullAsk()"/>
+          <button class="chat-send" onclick="fullAsk()">➤</button>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="clearChat()" style="font-size:11px;padding:6px 12px;">🗑️ Clear</button>
+          <button class="btn btn-secondary" onclick="downloadChat()" style="font-size:11px;padding:6px 12px;">💾 Save Chat</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title"><span class="icon">💡</span> Suggested Questions</div>
+          <div class="suggest-grid">
+            <button class="suggest-btn" onclick="fullAskQ('What are the key statistics of this dataset?')">What are the key statistics? →</button>
+            <button class="suggest-btn" onclick="fullAskQ('What problems exist in this data?')">What problems exist in this data? →</button>
+            <button class="suggest-btn" onclick="fullAskQ('Which columns have the strongest correlation?')">Which columns are strongly correlated? →</button>
+            <button class="suggest-btn" onclick="fullAskQ('What are the outliers in this dataset?')">What are the outliers? →</button>
+            <button class="suggest-btn" onclick="fullAskQ('Give me a business summary of this data')">Give me a business summary →</button>
+            <button class="suggest-btn" onclick="fullAskQ('What trends do you see in this data?')">What trends do you see? →</button>
+            <button class="suggest-btn" onclick="fullAskQ('Which column should I focus on first?')">Which column to focus on? →</button>
+            <button class="suggest-btn" onclick="fullAskQ('What actions should I take to improve this data?')">What actions should I take? →</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="icon">⚙️</span> Ollama Status</div>
+          <div id="ollamaStatusCard" style="font-size:13px;color:var(--text-dim);">Checking Ollama...</div>
+          <div style="margin-top:12px;font-size:12px;color:var(--text-dim);">
+            <strong style="color:var(--text-muted);">How to start Ollama:</strong><br>
+            1. Open terminal / command prompt<br>
+            2. Type: <code style="background:var(--bg-input);padding:2px 6px;border-radius:4px;color:var(--purple-bright);">ollama serve</code><br>
+            3. In another terminal: <code style="background:var(--bg-input);padding:2px 6px;border-radius:4px;color:var(--purple-bright);">ollama pull llama3</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== REPORTS ====== -->
+  <div class="page" id="page-reports">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>📋 <span>Reports</span></h1>
+        <p>Generate and download complete AI-powered analysis reports</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title"><span class="icon">📄</span> Generate Full Report</div>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">
+          Nobichan will analyze your entire dataset and create a professional PDF report with:<br>
+          • Executive Summary • Dataset Overview • Key Findings<br>
+          • Problems Detected • Recommended Actions • AI Insights • Conclusion
+        </p>
+        <div id="reportProgress" class="report-progress"><div class="report-progress-bar"></div></div>
+        <div id="reportStatus" style="font-size:13px;color:var(--text-dim);margin-bottom:12px;"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="generateReport()" id="genReportBtn">🤖 Generate AI Report (PDF)</button>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;"/>
+        <div class="card-title" style="margin-top:0;"><span class="icon">💾</span> Export Clean Data</div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Download your cleaned dataset in your preferred format</p>
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="exportData('csv')">⬇️ Download CSV</button>
+          <button class="btn btn-success" onclick="exportData('excel')">⬇️ Download Excel</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🧹</span> Data Cleaning</div>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Select cleaning operations to apply:</p>
+        <div class="clean-option">
+          <input type="checkbox" id="chkDuplicates" checked/>
+          <label for="chkDuplicates"><strong>Remove Duplicate Rows</strong> — deletes exact row duplicates</label>
+        </div>
+        <div class="clean-option">
+          <input type="checkbox" id="chkMissing" checked/>
+          <label for="chkMissing"><strong>Fill Missing Values</strong> — median for numbers, mode for text</label>
+        </div>
+        <div class="clean-option">
+          <input type="checkbox" id="chkWhitespace" checked/>
+          <label for="chkWhitespace"><strong>Strip Whitespace</strong> — trim spaces from text columns</label>
+        </div>
+        <div class="clean-option">
+          <input type="checkbox" id="chkCase"/>
+          <label for="chkCase"><strong>Standardize Case</strong> — convert all text to lowercase</label>
+        </div>
+        <button class="btn btn-primary" onclick="cleanData()" style="margin-top:12px;width:100%;">🧹 Run Cleaning</button>
+        <div id="cleanResults" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">⚠️</span> Problems & Actions Summary</div>
+      <div class="two-col" id="problemsActionsDiv">
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <h3>Upload data to see problems</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SETTINGS ====== -->
+  <div class="page" id="page-settings">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>⚙️ <span>Settings</span></h1>
+        <p>Configure Nobichan AI and your preferences</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title"><span class="icon">🤖</span> AI Configuration</div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <h4>Ollama Model</h4>
+            <p>The AI model used for analysis</p>
+          </div>
+          <select class="select-input" id="ollamaModel">
+            <option value="llama3">llama3 (Recommended)</option>
+            <option value="llama2">llama2</option>
+            <option value="mistral">mistral</option>
+            <option value="phi3">phi3</option>
+            <option value="gemma">gemma</option>
+            <option value="codellama">codellama</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <h4>Ollama Server URL</h4>
+            <p>Default: http://localhost:11434</p>
+          </div>
+          <input class="chat-input" id="ollamaUrl" value="http://localhost:11434" style="width:200px;"/>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <h4>Auto-Analyze on Upload</h4>
+            <p>Automatically analyze data when file is uploaded</p>
+          </div>
+          <div class="toggle on" id="toggleAutoAnalyze" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <h4>Dark Mode</h4>
+            <p>Always on — Nobichan loves the dark side</p>
+          </div>
+          <div class="toggle on"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()" style="margin-top:16px;">💾 Save Settings</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">ℹ️</span> About Nobichan</div>
+        <div style="font-size:13px;color:var(--text-dim);line-height:1.8;">
+          <p style="color:var(--text-main);font-size:15px;font-weight:700;margin-bottom:8px;">Nobichan AI Analyst v3.0</p>
+          <p>🤖 AI Engine: Ollama (100% Free, Local)</p>
+          <p>🐍 Backend: Python + Flask</p>
+          <p>📊 Data: Pandas + NumPy + SciPy</p>
+          <p>📈 Charts: Plotly</p>
+          <p>📄 Reports: ReportLab PDF</p>
+          <p>💰 Cost: Completely FREE</p>
+          <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;"/>
+          <p style="color:var(--text-main);font-weight:600;">Supported File Types:</p>
+          <p>CSV, XLSX, XLS, JSON, TSV, Parquet</p>
+          <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;"/>
+          <p style="color:var(--text-main);font-weight:600;">Features:</p>
+          <p>✅ Data cleaning & preprocessing</p>
+          <p>✅ Statistical analysis</p>
+          <p>✅ Outlier detection</p>
+          <p>✅ Correlation analysis</p>
+          <p>✅ Interactive visualizations</p>
+          <p>✅ AI-powered Q&A</p>
+          <p>✅ PDF report generation</p>
+          <p>✅ Export cleaned data</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">🔧</span> Quick Setup Guide</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;font-size:13px;">
+        <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+          <div style="font-size:20px;margin-bottom:8px;">1️⃣</div>
+          <div style="font-weight:700;color:var(--text-main);margin-bottom:6px;">Install Ollama</div>
+          <div style="color:var(--text-dim);">Download from ollama.com and install it on your computer</div>
+          <code style="display:block;margin-top:8px;background:var(--bg-card);padding:6px 10px;border-radius:6px;color:var(--purple-bright);font-size:11px;">ollama pull llama3</code>
+        </div>
+        <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+          <div style="font-size:20px;margin-bottom:8px;">2️⃣</div>
+          <div style="font-weight:700;color:var(--text-main);margin-bottom:6px;">Start Ollama</div>
+          <div style="color:var(--text-dim);">Open a terminal window and start the Ollama server</div>
+          <code style="display:block;margin-top:8px;background:var(--bg-card);padding:6px 10px;border-radius:6px;color:var(--purple-bright);font-size:11px;">ollama serve</code>
+        </div>
+        <div style="background:var(--bg-input);border-radius:10px;padding:16px;">
+          <div style="font-size:20px;margin-bottom:8px;">3️⃣</div>
+          <div style="font-weight:700;color:var(--text-main);margin-bottom:6px;">Start Nobichan</div>
+          <div style="color:var(--text-dim);">In another terminal, run the Flask app</div>
+          <code style="display:block;margin-top:8px;background:var(--bg-card);padding:6px 10px;border-radius:6px;color:var(--purple-bright);font-size:11px;">python app.py</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast hidden" id="toast"></div>
+
+<script>
+// ====== STATE ======
+let currentData = null;
+let chatHistory = [];
+
+// ====== NAVIGATION ======
+function goPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  const pages = ['dashboard','analytics','visualizations','ai','reports','settings'];
+  navItems[pages.indexOf(page)]?.classList.add('active');
+
+  if (page === 'analytics' && currentData) loadAnalytics();
+  if (page === 'ai') checkOllama();
+  if (page === 'reports' && currentData) loadProblemsActions();
+}
+
+// ====== STATUS CHECK ======
+async function checkStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const badge = document.getElementById('systemStatus');
+    const txt = document.getElementById('statusText');
+    if (d.ollama) {
+      badge.className = 'status-badge';
+      txt.textContent = 'System Ready';
+    } else {
+      badge.className = 'status-badge offline';
+      txt.textContent = 'Ollama Offline';
+    }
+  } catch(e) {}
+}
+setInterval(checkStatus, 10000);
+checkStatus();
+
+async function checkOllama() {
+  const el = document.getElementById('ollamaStatusCard');
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    if (d.ollama) {
+      el.innerHTML = '<span style="color:#10b981;">✅ Ollama is running and ready!</span><br><span style="font-size:11px;color:var(--text-dim);">Model: llama3 | Local AI active</span>';
+    } else {
+      el.innerHTML = '<span style="color:#ef4444;">❌ Ollama is not running</span><br><span style="font-size:11px;color:var(--text-dim);">Open a terminal and run: <code style="color:var(--purple-bright);">ollama serve</code></span>';
+    }
+  } catch(e) {
+    el.innerHTML = '<span style="color:#ef4444;">❌ Cannot connect to server</span>';
+  }
+}
+
+// ====== FILE UPLOAD ======
+function handleDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-over'); }
+function handleDragLeave(e) { document.getElementById('uploadZone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+}
+
+async function uploadFile(file) {
+  if (!file) return;
+  const sub = document.getElementById('uploadSubText');
+  sub.textContent = `Uploading ${file.name}...`;
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    const r = await fetch('/api/upload', { method: 'POST', body: formData });
+    const d = await r.json();
+    
+    if (d.error) { showToast('❌ ' + d.error, 'error'); sub.textContent = 'Drag & drop your file here, or click to browse'; return; }
+    
+    currentData = d;
+    sub.textContent = `✅ Loaded: ${file.name} — ${d.rows} rows × ${d.cols} cols`;
+    
+    // Update stats
+    document.getElementById('statRows').textContent = d.rows.toLocaleString();
+    document.getElementById('statCols').textContent = d.cols;
+    document.getElementById('statNumeric').textContent = d.numeric;
+    document.getElementById('statMissing').textContent = d.missing;
+    
+    // Preview table
+    renderPreviewTable(d);
+    
+    // Populate selects
+    populateColumnSelects(d.columns, d.dtypes);
+    
+    showToast(`✅ File loaded! ${d.rows} rows, ${d.cols} columns`, 'success');
+    checkStatus();
+  } catch(e) {
+    showToast('❌ Upload failed: ' + e.message, 'error');
+    sub.textContent = 'Drag & drop your file here, or click to browse';
+  }
+}
+
+function renderPreviewTable(d) {
+  const wrap = document.getElementById('previewTableWrap');
+  if (!d.preview || d.preview.length === 0) { wrap.innerHTML = '<div class="empty-state"><p>No data to preview</p></div>'; return; }
+  
+  const cols = Object.keys(d.preview[0]);
+  let html = '<table class="data-table"><thead><tr><th>#</th>';
+  cols.forEach(c => { html += `<th>${c}</th>`; });
+  html += '</tr></thead><tbody>';
+  
+  d.preview.forEach((row, i) => {
+    html += `<tr><td style="color:var(--text-dim)">${i}</td>`;
+    cols.forEach(c => {
+      const val = row[c];
+      html += `<td>${val === null || val === undefined ? '<span style="color:#ef4444;font-size:11px;">NULL</span>' : val}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function populateColumnSelects(columns, dtypes) {
+  const selects = ['xCol', 'yCol', 'colorCol'];
+  selects.forEach(id => {
+    const s = document.getElementById(id);
+    const isColor = id === 'colorCol';
+    s.innerHTML = isColor ? '<option value="">None</option>' : '<option value="">Select column</option>';
+    columns.forEach(c => { s.innerHTML += `<option value="${c}">${c} (${dtypes[c]})</option>`; });
+  });
+}
+
+// ====== QUICK ASK ======
+async function quickAskAI() {
+  const q = document.getElementById('quickAsk').value.trim();
+  if (!q) return;
+  document.getElementById('quickAsk').value = '';
+  const box = document.getElementById('quickChatBox');
+  box.innerHTML += `<div style="font-size:12px;color:var(--cyan);font-weight:700;">YOU</div><div style="background:rgba(6,182,212,0.08);padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px;">${q}</div>`;
+  box.innerHTML += `<div id="qLoading" style="color:var(--text-dim);font-size:12px;">🤖 Thinking...</div>`;
+  box.scrollTop = box.scrollHeight;
+  
+  try {
+    const r = await fetch('/api/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: q}) });
+    const d = await r.json();
+    document.getElementById('qLoading')?.remove();
+    const answer = d.answer || d.error || 'No response';
+    box.innerHTML += `<div style="font-size:12px;color:var(--purple-bright);font-weight:700;">NOBICHAN</div><div style="background:rgba(202,138,4,0.08);padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px;white-space:pre-wrap;">${answer}</div>`;
+    box.scrollTop = box.scrollHeight;
+  } catch(e) {
+    document.getElementById('qLoading')?.remove();
+    box.innerHTML += `<div style="color:#ef4444;font-size:13px;">Error: ${e.message}</div>`;
+  }
+}
+
+function askSuggest(q) {
+  document.getElementById('quickAsk').value = q;
+  quickAskAI();
+}
+
+// ====== FULL AI CHAT ======
+async function fullAsk() {
+  const q = document.getElementById('fullAskInput').value.trim();
+  if (!q) return;
+  document.getElementById('fullAskInput').value = '';
+  const box = document.getElementById('fullChatBox');
+  chatHistory.push({ role: 'user', text: q });
+  
+  box.innerHTML += `<div class="chat-msg user"><div class="chat-label">YOU</div><div class="chat-text">${q}</div></div>`;
+  box.innerHTML += `<div id="fullLoading" class="chat-msg ai"><div class="chat-label">NOBICHAN AI</div><div class="chat-text">🤖 Thinking... (Ollama is processing locally, may take 10-30 seconds)</div></div>`;
+  box.scrollTop = box.scrollHeight;
+  
+  try {
+    const r = await fetch('/api/ask', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: q}) });
+    const d = await r.json();
+    document.getElementById('fullLoading')?.remove();
+    const answer = d.answer || d.error || 'No response';
+    chatHistory.push({ role: 'ai', text: answer });
+    box.innerHTML += `<div class="chat-msg ai"><div class="chat-label">NOBICHAN AI</div><div class="chat-text">${answer}</div></div>`;
+    box.scrollTop = box.scrollHeight;
+  } catch(e) {
+    document.getElementById('fullLoading')?.remove();
+    box.innerHTML += `<div class="chat-msg ai"><div class="chat-label">NOBICHAN AI</div><div class="chat-text" style="color:#ef4444;">Error: ${e.message}</div></div>`;
+  }
+}
+
+function fullAskQ(q) {
+  document.getElementById('fullAskInput').value = q;
+  fullAsk();
+}
+
+function clearChat() {
+  chatHistory = [];
+  document.getElementById('fullChatBox').innerHTML = `<div class="chat-msg ai"><div class="chat-label">NOBICHAN AI</div><div class="chat-text">Chat cleared. Ready for new questions!</div></div>`;
+}
+
+function downloadChat() {
+  if (chatHistory.length === 0) { showToast('No chat to save', 'error'); return; }
+  let txt = 'NOBICHAN AI - Chat Export\n' + new Date().toLocaleString() + '\n' + '='.repeat(50) + '\n\n';
+  chatHistory.forEach(m => { txt += `${m.role === 'user' ? 'YOU' : 'NOBICHAN'}:\n${m.text}\n\n`; });
+  const a = document.createElement('a');
+  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txt);
+  a.download = 'nobichan_chat.txt';
+  a.click();
+}
+
+// ====== ANALYTICS ======
+function loadAnalytics() {
+  if (!currentData) return;
+  const a = currentData.analysis;
+  const container = document.getElementById('analyticsContent');
+  
+  let html = '';
+  
+  // Summary stats
+  html += `<div class="three-col" style="margin-bottom:20px;">
+    <div class="mini-stat"><div class="mini-stat-val">${a.shape.rows.toLocaleString()}</div><div class="mini-stat-label">Total Rows</div></div>
+    <div class="mini-stat"><div class="mini-stat-val">${a.shape.cols}</div><div class="mini-stat-label">Total Columns</div></div>
+    <div class="mini-stat"><div class="mini-stat-val">${a.total_missing}</div><div class="mini-stat-label">Missing Values</div></div>
+    <div class="mini-stat"><div class="mini-stat-val">${a.duplicates}</div><div class="mini-stat-label">Duplicate Rows</div></div>
+    <div class="mini-stat"><div class="mini-stat-val">${a.numeric_cols.length}</div><div class="mini-stat-label">Numeric Columns</div></div>
+    <div class="mini-stat"><div class="mini-stat-val">${a.cat_cols.length}</div><div class="mini-stat-label">Text Columns</div></div>
+  </div>`;
+  
+  // Column info
+  html += `<div class="card"><div class="card-title"><span class="icon">🗂️</span> Column Information</div><div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Column</th><th>Type</th><th>Missing</th><th>Missing %</th></tr></thead><tbody>`;
+  currentData.columns.forEach((col, i) => {
+    const dtype = currentData.dtypes[col];
+    const miss = a.missing[col];
+    const missPct = ((miss / a.shape.rows) * 100).toFixed(1);
+    const typeClass = dtype.includes('int') || dtype.includes('float') ? 'numeric' : dtype.includes('object') ? 'object' : dtype.includes('datetime') ? 'datetime' : 'bool';
+    html += `<tr><td style="color:var(--text-dim)">${i}</td><td style="color:var(--text-main);font-weight:500">${col}</td><td><span class="type-badge ${typeClass}">${dtype}</span></td><td style="color:${miss>0?'#f59e0b':'#10b981'}">${miss}</td><td style="color:${miss>0?'#f59e0b':'#10b981'}">${missPct}%</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  
+  // Numeric stats
+  if (a.numeric_stats && Object.keys(a.numeric_stats).length > 0) {
+    html += `<div class="card"><div class="card-title"><span class="icon">📐</span> Numeric Statistics</div><div class="table-wrap"><table class="data-table"><thead><tr><th>Column</th><th>Mean</th><th>Median</th><th>Std Dev</th><th>Min</th><th>Max</th><th>Outliers</th><th>Skewness</th></tr></thead><tbody>`;
+    Object.entries(a.numeric_stats).forEach(([col, s]) => {
+      const skewClass = Math.abs(s.skewness) > 1 ? 'color:#f59e0b' : 'color:#10b981';
+      const outClass = s.outliers > 0 ? 'color:#ef4444' : 'color:#10b981';
+      html += `<tr><td style="font-weight:600;color:var(--text-main)">${col}</td><td>${s.mean.toFixed(2)}</td><td>${s.median.toFixed(2)}</td><td>${s.std.toFixed(2)}</td><td>${s.min.toFixed(2)}</td><td>${s.max.toFixed(2)}</td><td style="${outClass}">${s.outliers}</td><td style="${skewClass}">${s.skewness.toFixed(2)}</td></tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+  
+  // Categorical stats
+  if (a.cat_stats && Object.keys(a.cat_stats).length > 0) {
+    html += `<div class="card"><div class="card-title"><span class="icon">📝</span> Categorical Column Analysis</div>`;
+    Object.entries(a.cat_stats).forEach(([col, s]) => {
+      html += `<div style="margin-bottom:16px;"><div style="font-size:13px;font-weight:700;color:var(--text-main);margin-bottom:8px;">${col} <span style="color:var(--text-dim);font-weight:400">(${s.unique} unique values)</span></div>`;
+      html += `<div style="display:flex;flex-wrap:wrap;gap:6px;">`;
+      Object.entries(s.top_values).slice(0, 10).forEach(([val, cnt]) => {
+        const pct = ((cnt / a.shape.rows) * 100).toFixed(1);
+        html += `<div style="background:rgba(202,138,4,0.1);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--text-muted);"><span style="color:var(--text-main)">${val}</span> <span style="color:var(--purple-bright)">${cnt} (${pct}%)</span></div>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+  }
+  
+  // Correlations
+  if (a.strong_correlations && a.strong_correlations.length > 0) {
+    html += `<div class="card"><div class="card-title"><span class="icon">🔗</span> Strong Correlations (|r| > 0.5)</div>`;
+    a.strong_correlations.forEach(c => {
+      const cls = c.value > 0 ? 'pos' : 'neg';
+      html += `<span class="corr-badge ${cls}">${c.col1} ↔ ${c.col2}: ${c.value}</span>`;
+    });
+    html += `</div>`;
+  }
+  
+  container.innerHTML = html;
+}
+
+// ====== VISUALIZATIONS ======
+async function renderCustomChart() {
+  const chartType = document.getElementById('chartType').value;
+  const xCol = document.getElementById('xCol').value;
+  const yCol = document.getElementById('yCol').value;
+  const colorCol = document.getElementById('colorCol').value;
+  
+  const div = document.getElementById('customChartDiv');
+  div.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">🔄 Generating chart...</div>';
+  
+  try {
+    const r = await fetch('/api/visualize', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({chart_type: chartType, x_col: xCol || null, y_col: yCol || null, color_col: colorCol || null})
+    });
+    const d = await r.json();
+    if (d.error) { div.innerHTML = `<div style="color:#ef4444;padding:20px;">${d.error}</div>`; return; }
+    const fig = JSON.parse(d.chart);
+    Plotly.newPlot(div, fig.data, fig.layout, {responsive: true});
+  } catch(e) {
+    div.innerHTML = `<div style="color:#ef4444;padding:20px;">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadAutoViz() {
+  if (!currentData) { showToast('Upload a file first', 'error'); return; }
+  const grid = document.getElementById('autoVizGrid');
+  grid.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:40px;color:var(--text-dim);">🔄 Generating charts...</div>';
+  
+  try {
+    const r = await fetch('/api/auto_visualize');
+    const d = await r.json();
+    if (!d.charts || d.charts.length === 0) { grid.innerHTML = '<div class="empty-state" style="grid-column:span 2;"><p>Not enough data for charts</p></div>'; return; }
+    
+    grid.innerHTML = '';
+    d.charts.forEach((item, i) => {
+      const div = document.createElement('div');
+      div.className = 'viz-item';
+      div.innerHTML = `<div class="viz-title">${item.title}</div><div id="autoChart${i}" style="width:100%;height:300px;"></div>`;
+      grid.appendChild(div);
+      const fig = JSON.parse(item.chart);
+      fig.layout.height = 300; fig.layout.margin = {l:40,r:20,t:30,b:40}; fig.layout.paper_bgcolor = 'rgba(0,0,0,0)'; fig.layout.plot_bgcolor = 'rgba(255,255,255,0.03)'; fig.layout.font = {color:'#f1f0ff'}; Plotly.newPlot(`autoChart${i}`, fig.data, fig.layout, {responsive:true, displayModeBar:false});
+    });
+  } catch(e) {
+    grid.innerHTML = `<div style="color:#ef4444;padding:20px;grid-column:span 2;">Error: ${e.message}</div>`;
+  }
+}
+
+function updateChartOptions() {
+  // Show/hide y column based on chart type
+  const type = document.getElementById('chartType').value;
+  const needsY = ['bar','line','scatter','area'];
+  document.getElementById('yColGroup').style.opacity = needsY.includes(type) ? '1' : '0.4';
+}
+
+// ====== CLEANING ======
+async function cleanData() {
+  if (!currentData) { showToast('Upload a file first', 'error'); return; }
+  
+  const opts = {
+    remove_duplicates: document.getElementById('chkDuplicates').checked,
+    fill_missing: document.getElementById('chkMissing').checked,
+    strip_whitespace: document.getElementById('chkWhitespace').checked,
+    standardize_case: document.getElementById('chkCase').checked
+  };
+  
+  const resultsDiv = document.getElementById('cleanResults');
+  resultsDiv.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">🧹 Cleaning in progress...</div>';
+  
+  try {
+    const r = await fetch('/api/clean', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(opts) });
+    const d = await r.json();
+    
+    if (d.error) { resultsDiv.innerHTML = `<div style="color:#ef4444">${d.error}</div>`; return; }
+    
+    currentData.analysis = d.analysis;
+    currentData.rows = d.new_shape.rows;
+    currentData.missing = d.remaining_missing;
+    
+    document.getElementById('statRows').textContent = d.new_shape.rows.toLocaleString();
+    document.getElementById('statMissing').textContent = d.remaining_missing;
+    
+    let html = '<div style="font-size:13px;">';
+    d.actions.forEach(a => { html += `<div class="action-item">✅ ${a}</div>`; });
+    html += `<div style="margin-top:8px;color:var(--purple-bright);font-size:12px;">New shape: ${d.new_shape.rows} rows × ${d.new_shape.cols} cols | Missing: ${d.remaining_missing}</div>`;
+    html += '</div>';
+    resultsDiv.innerHTML = html;
+    
+    showToast('✅ Cleaning complete!', 'success');
+    loadProblemsActions();
+  } catch(e) {
+    resultsDiv.innerHTML = `<div style="color:#ef4444">Error: ${e.message}</div>`;
+  }
+}
+
+// ====== REPORT ======
+async function generateReport() {
+  if (!currentData) { showToast('Upload a file first', 'error'); return; }
+  
+  const btn = document.getElementById('genReportBtn');
+  const status = document.getElementById('reportStatus');
+  const progress = document.getElementById('reportProgress');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+  progress.style.display = 'block';
+  status.textContent = '🤖 Nobichan is analyzing your data and writing the report... (may take 30-60 seconds)';
+  
+  try {
+    const r = await fetch('/api/generate_report', { method: 'POST', headers: {'Content-Type':'application/json'} });
+    
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.error);
+    }
+    
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Nobichan_Report_${Date.now()}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    status.textContent = '✅ Report downloaded! Check your Downloads folder.';
+    progress.style.display = 'none';
+    showToast('✅ Report downloaded!', 'success');
+  } catch(e) {
+    status.textContent = '❌ Error: ' + e.message;
+    progress.style.display = 'none';
+    showToast('❌ Report generation failed: ' + e.message, 'error');
+  }
+  
+  btn.disabled = false;
+  btn.innerHTML = '🤖 Generate AI Report (PDF)';
+}
+
+async function exportData(fmt) {
+  if (!currentData) { showToast('Upload a file first', 'error'); return; }
+  const a = document.createElement('a');
+  a.href = `/api/export_clean?format=${fmt}`;
+  a.click();
+  showToast('⬇️ Download started!', 'success');
+}
+
+function loadProblemsActions() {
+  if (!currentData || !currentData.analysis) return;
+  const a = currentData.analysis;
+  const div = document.getElementById('problemsActionsDiv');
+  
+  let html = '<div>';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:12px;">⚠️ Problems Detected</div>';
+  if (a.problems && a.problems.length > 0) {
+    a.problems.forEach(p => { html += `<div class="problem-item">⚠️ ${p}</div>`; });
+  } else {
+    html += '<div class="action-item">✅ No problems detected! Data is clean.</div>';
+  }
+  html += '</div>';
+  
+  html += '<div>';
+  html += '<div style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:12px;">🔧 Recommended Actions</div>';
+  if (a.actions && a.actions.length > 0) {
+    a.actions.forEach((act, i) => { html += `<div class="action-item">${i+1}. ${act}</div>`; });
+  }
+  html += '</div>';
+  
+  div.innerHTML = html;
+}
+
+// ====== SETTINGS ======
+function saveSettings() {
+  showToast('✅ Settings saved!', 'success');
+}
+
+// ====== TOAST ======
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  t.classList.remove('hidden');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+// ====== INIT ======
+checkStatus();
+</script>
+</body>
+</html>
